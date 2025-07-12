@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# SCRIPT DE CAMUFLAGEM TOTAL - KALI LINUX (por Ricardo Palma)
+
+echo "🔒 Iniciando rotina de invisibilidade..."
+
+# 1. SPOOFAR MAC ADDRESS
+echo "➡️  Spoofando MAC address..."
+IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -E 'eth0|enp|wlan0' | head -n 1)
+sudo ifconfig $IFACE down
+sudo macchanger -r $IFACE
+sudo ifconfig $IFACE up
+
+# 2. BLOQUEAR RESPOSTA A PING
+echo "➡️  Bloqueando resposta a ping (ICMP)..."
+echo 1 | sudo tee /proc/sys/net/ipv4/icmp_echo_ignore_all > /dev/null
+
+# 3. DESATIVAR IPV6
+echo "➡️  Desativando IPv6..."
+sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1 > /dev/null
+sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1 > /dev/null
+
+# 4. INICIAR TOR
+echo "➡️  Iniciando serviço Tor..."
+sudo systemctl start tor
+
+# 5. ATIVAR FIREWALL
+echo "➡️  Ativando firewall com regras seguras..."
+sudo ufw --force enable
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# 6. TESTAR IP COM TOR (proxychains)
+echo "➡️  Testando conexão via Tor..."
+proxychains curl -s https://check.torproject.org | grep -q "Congratulations"
+if [ $? -eq 0 ]; then
+    echo "✅  Conectado à rede Tor com sucesso!"
+else
+    echo "❌  Tor NÃO está roteando corretamente! Verifique proxychains.conf"
+fi
+
+echo "🎯 Pronto para atuar em segurança, Ricardo. Boa sorte!"
